@@ -93,6 +93,9 @@ notInvolutiveTests =
   , ("not(not(true))", "(true)")
   , ("not not(true)", "(true)")
   , ("not(not true)", "true")
+  , ("not not(not true)", "not true")
+  , ("not(  not(not true))", "not(  true)")
+  , ("((((not(not true)))))", "((((true))))")
   ]
 
 prop_abstract_notInvolutive :: Property
