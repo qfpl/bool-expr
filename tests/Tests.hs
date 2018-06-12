@@ -23,6 +23,17 @@ genAbstract =
     genWhitespace =
       Gen.list (Range.constant 0 10) (pure Abstract.Space)
 
+genAbstractSC :: MonadGen m => m Abstract.Expr
+genAbstractSC =
+  Gen.recursive Gen.choice
+    [ pure Abstract.true_
+    , pure Abstract.false_
+    , Abstract.ident_ <$> Gen.list (Range.constant 1 10) Gen.lower
+    ]
+    [ Abstract.not_ <$> genAbstractSC
+    , Abstract.paren_ <$> genAbstractSC
+    ]
+
 genConcrete :: MonadGen m => m (Concrete.Expr [])
 genConcrete = genExprList
   where
@@ -73,15 +84,23 @@ genConcrete = genExprList
     genWhitespace1 =
       Gen.nonEmpty (Range.constant 1 10) (pure Concrete.Space)
 
-prop_concrete_printparseprint_print :: Property
-prop_concrete_printparseprint_print =
+prop_concrete_parseprint_id :: Property
+prop_concrete_parseprint_id =
+  property $ do
+    tree <- forAll genConcrete
+    let tree' = Concrete.pretty tree
+    annotate tree'
+    annotateShow tree'
+    Just tree' === fmap Concrete.pretty (Concrete.parseExpr tree')
+
+prop_concrete_printparse_id :: Property
+prop_concrete_printparse_id =
   property $ do
     tree <- forAll genConcrete
     annotate $ Concrete.pretty tree
-    let tree' = Concrete.parseExpr (Concrete.pretty tree)
-    annotateShow tree'
-    Just (Concrete.pretty tree) === fmap Concrete.pretty tree'
+    Just tree === Concrete.parseExpr (Concrete.pretty tree)
 
+{-
 prop_abstract_printparseprint_print :: Property
 prop_abstract_printparseprint_print =
   property $ do
@@ -90,6 +109,14 @@ prop_abstract_printparseprint_print =
     let tree' = Abstract.parseExpr (Abstract.pretty tree)
     annotateShow tree'
     Just (Abstract.pretty tree) === fmap Abstract.pretty tree'
+-}
+
+prop_abstractSC_printparse_id :: Property
+prop_abstractSC_printparse_id =
+  property $ do
+    tree <- forAll genAbstractSC
+    annotate $ Abstract.pretty tree
+    Just tree === Abstract.parseExpr (Abstract.pretty tree)
 
 prop_abstract_parseprintparse_parse :: Property
 prop_abstract_parseprintparse_parse =
@@ -100,6 +127,15 @@ prop_abstract_parseprintparse_parse =
     annotateShow tree'
     (fmap Abstract.pretty tree' >>= Abstract.parseExpr) ===
       Abstract.parseExpr tree
+
+prop_abstract_parseprint_id :: Property
+prop_abstract_parseprint_id =
+  property $ do
+    tree <- Concrete.pretty <$> forAll genConcrete
+    annotate tree
+    let tree' = Abstract.parseExpr tree
+    annotateShow tree'
+    fmap Abstract.pretty tree' === Just tree
 
 notInvolutiveTests :: [(String, String)]
 notInvolutiveTests =

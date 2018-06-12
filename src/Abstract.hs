@@ -71,6 +71,12 @@ true_ = Lit True []
 false_ :: Expr
 false_ = Lit False []
 
+ident_ :: String -> Expr
+ident_ s = Ident s []
+
+paren_ :: Expr -> Expr
+paren_ e = Paren [] e []
+
 prettySpaces :: Foldable f => f Space -> String
 prettySpaces = foldMap (const " ")
 
