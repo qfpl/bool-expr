@@ -75,7 +75,7 @@ parseExpr str =
     _ -> Nothing
   where
     expr :: Parser (f Space) -> Parser (Expr f)
-    expr = atom0
+    expr space = atom0 space <|> Expr1 <$> atom1 space
 
     expr1 :: Parser (f Space) -> Parser (Expr1 f)
     expr1 = atom1
@@ -104,5 +104,37 @@ parseExpr str =
     atom1 spaces =
       Paren <$ char '(' <*> many space <*> expr (many space) <* char ')' <*> spaces
 
-notInvolutive :: Expr f -> Expr f
-notInvolutive = undefined
+rewrite
+  :: (Expr [] -> Maybe (Expr []))
+  -> (Expr1 [] -> Maybe (Expr1 []))
+  -> Expr [] -> Expr []
+rewrite fe fe1 e =
+  case e of
+    Not0 sp e1 -> repeatedly $ Not0 sp $ rewrite1 fe fe1 e1
+    Not1 sp e' -> repeatedly $ Not1 sp $ rewrite fe fe1 e'
+    Expr1 e1 -> repeatedly $ Expr1 $ rewrite1 fe fe1 e1
+    _ -> repeatedly e
+  where
+    repeatedly e = maybe e (rewrite fe fe1) (fe e)
+
+rewrite1
+  :: (Expr [] -> Maybe (Expr []))
+  -> (Expr1 [] -> Maybe (Expr1 []))
+  -> Expr1 [] -> Expr1 []
+rewrite1 fe fe1 e1 =
+  case e1 of
+    Paren sp e sp' -> repeatedly1 $ Paren sp (rewrite fe fe1 e) sp'
+  where
+    repeatedly1 e1 = maybe e1 (rewrite1 fe fe1) (fe1 e1)
+
+notInvolutive :: Expr [] -> Expr []
+notInvolutive =
+  rewrite
+    (\case
+        Not0 _ (Paren _ (Not0 _ e) _) -> Just $ Expr1 e
+        Not0 _ (Paren _ (Not1 _ e) _) -> Just e
+        Not1 _ (Not0 _ e) -> Just $ Expr1 e
+        Not1 _ (Not1 _ e) -> Just e
+        _ -> Nothing)
+    (\case
+        Paren{} -> Nothing)

@@ -91,6 +91,16 @@ prop_abstract_printparseprint_print =
     annotateShow tree'
     Just (Abstract.pretty tree) === fmap Abstract.pretty tree'
 
+prop_abstract_parseprintparse_parse :: Property
+prop_abstract_parseprintparse_parse =
+  property $ do
+    tree <- Concrete.pretty <$> forAll genConcrete
+    annotate tree
+    let tree' = Abstract.parseExpr tree
+    annotateShow tree'
+    (fmap Abstract.pretty tree' >>= Abstract.parseExpr) ===
+      Abstract.parseExpr tree
+
 notInvolutiveTests :: [(String, String)]
 notInvolutiveTests =
   [ ("not not true", "true")
