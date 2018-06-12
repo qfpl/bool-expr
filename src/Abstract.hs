@@ -20,6 +20,7 @@ data Space = Space deriving (Eq, Show)
 
 data Expr
   = Lit Bool [Space]
+  | Ident String [Space]
   | Not [Space] Expr
   | Paren [Space] Expr [Space]
   deriving (Eq, Show, Generic)
@@ -76,6 +77,7 @@ prettySpaces = foldMap (const " ")
 pretty :: Expr -> String
 pretty e =
   case e of
+    Ident s sp -> s <> prettySpaces sp
     Lit b sp -> (if b then "true" else "false") <> prettySpaces sp
     Not sp e -> "not" <> prettySpaces sp <> pretty e
     Paren sp e sp' -> "(" <> prettySpaces sp <> pretty e <> ")" <> prettySpaces sp'
@@ -90,10 +92,11 @@ parseExpr str =
     _ -> Nothing
   where
     atom =
-      Lit True <$ string "true" <*> many space <|>
-      Lit False <$ string "false" <*> many space <|>
+      Lit True <$ try (string "true" <* notFollowedBy lower) <*> many space <|>
+      Lit False <$ try (string "false" <* notFollowedBy lower) <*> many space <|>
       Paren <$ char '(' <*> many space <*> atom <* char ')' <*> many space <|>
-      Not <$ string "not" <*> many space <*> atom
+      Not <$ try (string "not" <* notFollowedBy lower) <*> many space <*> atom <|>
+      Ident <$> some lower <*> many space
 
 notInvolutive :: Expr -> Expr
 notInvolutive =

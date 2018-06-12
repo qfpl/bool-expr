@@ -23,6 +23,7 @@ data Expr f
   = Lit Bool (f Space)
   | Not0 [Space] (Expr1 f)
   | Not1 (NonEmpty Space) (Expr f)
+  | Ident String (f Space)
   | Expr1 (Expr1 f)
 deriving instance Eq (f Space) => Eq (Expr f)
 deriving instance Show (f Space) => Show (Expr f)
@@ -41,6 +42,9 @@ true_ = Lit True []
 false_ :: Expr []
 false_ = Lit False []
 
+ident_ :: String -> Expr []
+ident_ s = Ident s []
+
 prettySpaces :: Foldable f => f Space -> String
 prettySpaces = foldMap $ const " "
 
@@ -50,6 +54,7 @@ pretty = pretty' prettySpaces
     pretty' :: (f Space -> String) -> Expr f -> String
     pretty' spaces e =
       case e of
+        Ident s sp -> s <> spaces sp
         Lit b sp -> (if b then "true" else "false") <> spaces sp
         Not0 sp e1 -> "not" <> prettySpaces sp <> pretty1 spaces e1
         Not1 sp e -> "not" <> prettySpaces sp <> pretty' spaces e
@@ -77,7 +82,7 @@ parseExpr str =
 
     notExpr :: Parser (f Space) -> Parser (Expr f)
     notExpr spaces =
-      string "not" *>
+      (try $ string "not" <* notFollowedBy lower) *>
       (fmap (\(a, b, c) -> either (Not0 (a : b)) (Not1 (a :| b)) c)
        ((,,) <$>
         space <*>
@@ -90,9 +95,10 @@ parseExpr str =
 
     atom0 :: Parser (f Space) -> Parser (Expr f)
     atom0 spaces =
-      Lit True <$ string "true" <*> spaces <|>
-      Lit False <$ string "false" <*> spaces <|>
-      notExpr spaces
+      Lit True <$ try (string "true" <* notFollowedBy lower) <*> spaces <|>
+      Lit False <$ try (string "false" <* notFollowedBy lower) <*> spaces <|>
+      notExpr spaces <|>
+      Ident <$> some lower <*> spaces
 
     atom1 :: Parser (f Space) -> Parser (Expr1 f)
     atom1 spaces =

@@ -14,6 +14,7 @@ genAbstract :: MonadGen m => m Abstract.Expr
 genAbstract =
   Gen.recursive Gen.choice
     [ Abstract.Lit <$> Gen.bool <*> genWhitespace
+    , Abstract.Ident <$> Gen.list (Range.constant 1 10) Gen.lower <*> genWhitespace
     ]
     [ Abstract.Not <$> genWhitespace <*> genAbstract
     , Abstract.Paren <$> genWhitespace <*> genAbstract <*> genWhitespace
@@ -28,6 +29,9 @@ genConcrete = genExprList
     genExprList =
       Gen.recursive Gen.choice
         [ Concrete.Lit <$> Gen.bool <*> genWhitespace
+        , Concrete.Ident <$>
+          Gen.list (Range.constant 1 10) Gen.lower <*>
+          genWhitespace
         ]
         [ Concrete.Not0 <$>
           genWhitespace <*>
