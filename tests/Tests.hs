@@ -1,6 +1,7 @@
 {-# language TemplateHaskell #-}
 module Main where
 
+import Data.Foldable (for_)
 import Data.List (unfoldr)
 import Data.List.NonEmpty (NonEmpty(..))
 import Hedgehog
@@ -75,8 +76,7 @@ prop_concrete_printparseprint_print =
     annotate $ Concrete.pretty tree
     let tree' = Concrete.parseExpr (Concrete.pretty tree)
     annotateShow tree'
-    Just (Concrete.pretty tree) ===
-      fmap Concrete.pretty tree'
+    Just (Concrete.pretty tree) === fmap Concrete.pretty tree'
 
 prop_abstract_printparseprint_print :: Property
 prop_abstract_printparseprint_print =
@@ -85,8 +85,39 @@ prop_abstract_printparseprint_print =
     annotate $ Abstract.pretty tree
     let tree' = Abstract.parseExpr (Abstract.pretty tree)
     annotateShow tree'
-    Just (Abstract.pretty tree) ===
-      fmap Abstract.pretty tree'
+    Just (Abstract.pretty tree) === fmap Abstract.pretty tree'
+
+notInvolutiveTests :: [(String, String)]
+notInvolutiveTests =
+  [ ("not not true", "true")
+  , ("not(not(true))", "(true)")
+  , ("not not(true)", "(true)")
+  , ("not(not true)", "true")
+  ]
+
+prop_abstract_notInvolutive :: Property
+prop_abstract_notInvolutive =
+  withTests 1 . property $
+  for_ notInvolutiveTests $ \(input, output) ->
+    fmap
+      (Abstract.pretty . Abstract.notInvolutive)
+      (Abstract.parseExpr input)
+
+    ===
+
+    Just output
+
+prop_concrete_notInvolutive :: Property
+prop_concrete_notInvolutive =
+  withTests 1 . property $
+  for_ notInvolutiveTests $ \(input, output) ->
+    fmap
+      (Concrete.pretty . Concrete.notInvolutive)
+      (Concrete.parseExpr input)
+
+    ===
+
+    Just output
 
 main :: IO Bool
 main = checkParallel $$(discover)

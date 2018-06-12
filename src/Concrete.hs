@@ -1,7 +1,13 @@
 {-# language StandaloneDeriving, UndecidableInstances #-}
+{-# language RankNTypes #-}
+{-# language LambdaCase #-}
 module Concrete where
 
 import Control.Applicative ((<|>))
+import Control.Lens.Fold ((^?))
+import Control.Lens.Traversal (Traversal')
+import Control.Lens.Prism (Prism', prism')
+import Control.Lens.Review (re)
 import Data.List.NonEmpty (NonEmpty(..), some1)
 import Data.Maybe (fromMaybe)
 import Data.Semigroup ((<>))
@@ -11,7 +17,6 @@ import Text.Trifecta hiding (space)
 Notes: got rid of boolean 'and' because it was introducing too
 much complexity
 --}
-
 data Space = Space deriving (Eq, Show)
 
 data Expr f
@@ -92,3 +97,6 @@ parseExpr str =
     atom1 :: Parser (f Space) -> Parser (Expr1 f)
     atom1 spaces =
       Paren <$ char '(' <*> many space <*> expr (many space) <* char ')' <*> spaces
+
+notInvolutive :: Expr f -> Expr f
+notInvolutive = undefined
