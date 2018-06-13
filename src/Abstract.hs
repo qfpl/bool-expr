@@ -44,24 +44,6 @@ underParens f e = f e
 instance Plated Expr where
   plate = gplate
 
-spaceAfter :: Lens' Expr [Space]
-spaceAfter =
-  lens
-    (\e ->
-       case e of
-         Lit _ sp -> sp
-         Not _ e' -> e' ^. spaceAfter
-         Paren _ _ sp -> sp)
-    (\e sp ->
-       case e of
-         Lit b _ -> Lit b sp
-         Not s e' -> Not s (e' & spaceAfter .~ sp)
-         Paren s e' _ -> Paren s e' sp)
-
-toNonEmpty :: a -> [a] -> NonEmpty a
-toNonEmpty _ (a : as) = a :| as
-toNonEmpty a [] = pure a
-
 not_ :: Expr -> Expr
 not_ = Not [Space]
 

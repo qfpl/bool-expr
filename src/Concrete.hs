@@ -16,7 +16,8 @@ import Text.Trifecta hiding (space)
 {-
 Notes: got rid of boolean 'and' because it was introducing too
 much complexity
---}
+-}
+
 data Space = Space deriving (Eq, Show)
 
 data Expr f
